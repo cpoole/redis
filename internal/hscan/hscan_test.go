@@ -175,4 +175,22 @@ var _ = Describe("Scan", func() {
 		Expect(Scan(&d, i{"bool"}, i{""})).To(HaveOccurred())
 		Expect(Scan(&d, i{"bool"}, i{"123"})).To(HaveOccurred())
 	})
+
+	It("does not stop scanning on first failure", func() {
+		var d data
+
+		keys := i{"bool", "string", "int", "uint8"}
+		vals := i{"-1", "foobar", "123", "12345"}
+
+		err := Scan(&d, keys, vals)
+		Expect(err).To(HaveOccurred())
+
+		Expect(d).To(Equal(data{
+			Bool:   false,
+			String: "foobar",
+			Int:    123,
+			Uint8:  0,
+		}))
+
+	})
 })
