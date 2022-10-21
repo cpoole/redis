@@ -10,6 +10,13 @@ import (
 	redis "github.com/go-redis/redis/v8"
 )
 
+type dataHash struct {
+	Boolean bool   `redis:"boolean"`
+	String  string `redis:"string"`
+	Uint8   uint8  `redis:"uint8"`
+	Int     int    `redis:"int"`
+}
+
 var _ = Describe("Cmd", func() {
 	var client *redis.Client
 
@@ -84,6 +91,30 @@ var _ = Describe("Cmd", func() {
 		tm2, err := client.Get(ctx, "time_key").Time()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(tm2).To(BeTemporally("==", tm))
+	})
+
+	It("does not stop scanning on first failure", func() {
+		incorrectData := map[string]interface{}{
+			"boolean": "-1", //this is the one that causes the error
+			"string":  "foo",
+			"uint8":   "1",
+			"int":     "1",
+		}
+
+		client.HSet(ctx, "set_key", incorrectData)
+
+		d := dataHash{}
+
+		err := client.HGetAll(ctx, "set_key").Scan(&d)
+		Expect(err).To(HaveOccurred())
+
+		Expect(d).To(Equal(dataHash{
+			Boolean: false,
+			String:  "foo",
+			Int:     1,
+			Uint8:   1,
+		}))
+
 	})
 
 	It("allows to set custom error", func() {

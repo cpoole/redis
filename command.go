@@ -1206,10 +1206,16 @@ func (cmd *StringStringMapCmd) Scan(dest interface{}) error {
 		return err
 	}
 
+	scanErrors := []error{}
+
 	for k, v := range cmd.val {
 		if err := strct.Scan(k, v); err != nil {
-			return err
+			scanErrors = append(scanErrors, err)
 		}
+	}
+
+	if len(scanErrors) > 0 {
+		return fmt.Errorf("scan errors: %v", scanErrors)
 	}
 
 	return nil
